@@ -1,0 +1,6 @@
+
+image: antoineleguillou/kubequest:2024-06-28.1
+replicaCount: 1
+configMapRef: kubequest
+secretRef: kubequest
+port: 80

@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    tier: {{ .Release.Name }}
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  replicas: {{ .Values.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      tier: {{ .Release.Name | quote }}
+  template:
+    metadata:
+      labels:
+        tier: {{ .Release.Name | quote }}
+    spec:
+      initContainers:
+        - name: init
+          image: {{ .Values.image | default "antoineleguillou/kubequest:2024-06-28.1" | quote }}
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/bash", "-c"]
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.configMapRef | quote }}
+            - secretRef:
+                name: {{ .Values.secretRef | quote }}
+          args:
+            - |
+              php artisan migrate --force
+      containers:
+        - name: {{ .Release.Name | quote }}
+          image: {{ .Values.image  | default "antoineleguillou/kubequest:2024-06-28.1" | quote }}
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: 350m
+              memory: 450Mi
+            requests:
+              cpu: 250m
+              memory: 250Mi
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.configMapRef | quote }}
+            - secretRef:
+                name: {{ .Values.secretRef | quote }}
+          ports:
+            - containerPort: {{ .Values.port | default 80 }}
+      restartPolicy: Always

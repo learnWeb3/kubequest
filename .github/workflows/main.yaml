@@ -1,0 +1,106 @@
+name: Kubequest test and Docker Image build and push
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run mysql container
+        run: |
+          docker run -d \
+          -p 3306:3306 \
+          -e MYSQL_DATABASE=app_database \
+          -e MYSQL_USER=app_user \
+          -e MYSQL_PASSWORD=app_password \
+          -e MYSQL_ROOT_PASSWORD=app_root_password \
+          -v db_data:/var/lib/mysql \
+          --name=mysql mysql:5.7
+
+      - name: Sleep for 10 seconds
+        uses: jakejarvis/wait-action@master
+        with:
+          time: "10s"
+
+      - name: Check docker status
+        run: docker ps
+
+      - name: Install dependencies
+        run: |
+          # Update packages
+          sudo apt update -yqq
+          # install apache2
+          sudo apt install -y apache2
+          # allow apache2 
+          sudo ufw allow 80
+          sudo ufw allow 443
+          sudo systemctl start apache2
+          # install package dependencies
+          sudo apt install -y php libapache2-mod-php php-mbstring php-xmlrpc php-soap php-gd php-xml php-cli php-zip php-bcmath php-tokenizer php-json php-pear
+          # Install Composer and project dependencies.
+          curl -sS https://getcomposer.org/installer | php
+          sudo mv composer.phar /usr/local/bin/composer
+          sudo chmod +x /usr/local/bin/composer
+          cd $GITHUB_WORKSPACE && composer install
+          cd $GITHUB_WORKSPACE && composer update
+          # Copy over testing configuration.
+          cd $GITHUB_WORKSPACE && cp .env.test .env
+          cat $GITHUB_WORKSPACE/.env
+
+      - name: Setup laravel application
+        run: |
+          # Generate an application key. Re-cache.
+          cd $GITHUB_WORKSPACE && php artisan key:generate
+          cd $GITHUB_WORKSPACE && php artisan config:cache
+          # Run database migrations.
+          cd $GITHUB_WORKSPACE && php artisan migrate
+          # Run database seed
+          cd $GITHUB_WORKSPACE && php artisan db:seed
+
+      - name: Run tests
+        run: |
+          cd $GITHUB_WORKSPACE && php artisan test
+
+  build-push:
+    runs-on: ubuntu-latest
+    needs: ["test"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: antoineleguillou/kubequest
+          tags: |
+            type=raw,enable=true,priority=200,prefix={{ date 'YYYY-MM-DD' }},suffix=.${{ github.run_number }},value=
+
+      - name: Build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

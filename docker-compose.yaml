@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 services:
   traefik:
     image: "traefik:v2.4"
@@ -37,6 +37,7 @@ services:
       - "traefik.http.routers.app.rule=Host(`localhost`)"
   db:
     image: mysql:5.7
+    platform: linux/amd64
     restart: always
     environment:
       MYSQL_DATABASE: app_database

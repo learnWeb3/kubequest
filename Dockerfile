@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y git unzip p7zip-full
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Copiez les fichiers de l'application dans le conteneur
+COPY ./composer.* /var/www/html
 COPY . /var/www/html/
 
 # Installez les dépendances de l'application

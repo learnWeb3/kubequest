@@ -8,7 +8,7 @@ The application has been containerized using Docker and a docker-compose helps u
 
 ## Environnement variables
 
--   APP_DEBUG: laravel application enable dbugging
+-   APP_DEBUG: laravel application enable debugging
 -   APP_ENV: laravel application environnement
 -   APP_KEY: laravel application encryption key: Used for Encrypt and decrypt data using the encrypt() and decrypt() functions, Generate secure, random strings using the Str::random() function, Sign and verify data using the hash_hmac() function, Generate unique authentication tokens using the Hash::make() function.
 -   DB_CONNECTION: laravel application database connection type
@@ -41,7 +41,7 @@ php artisan db:seed
 
 ## Pipelines
 
-A pipeline has been setup in order to build and push the docker image to dockerhub. As we want to suport arm architecture based execution environnement we build multi arch plateform images (linus/amd64n, linux/arm64).
+A pipeline has been setup in order to test the application and build and push the application docker image to dockerhub. As we want to suport arm architecture based execution environnement we build multi arch plateform images (linus/amd64, linux/arm64).
 
 ## Helm chart
 

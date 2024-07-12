@@ -4,3 +4,4 @@ replicaCount: 1
 configMapRef: kubequest
 secretRef: kubequest
 port: 80
+progressDeadlineSeconds: 60
